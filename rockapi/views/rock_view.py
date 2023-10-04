@@ -59,8 +59,14 @@ class RockView(ViewSet):
         Returns:
             Response -- JSON serialized array
         """
+        owner_only = request.query_params.get("owner", None)
+
         try:
             rocks = Rock.objects.all()
+
+            if owner_only is not None and owner_only == "current":
+                rocks = rocks.filter(user=request.auth.user)
+
             serializer = RockSerializer(rocks, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as ex:
