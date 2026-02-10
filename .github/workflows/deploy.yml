@@ -24,15 +24,20 @@ jobs:
       - name: Trigger remote deployment on EC2 via SSM
         run: |
           aws ssm send-command \
-            --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
-            --document-name "AWS-RunShellScript" \
-            --comment "Manual deploy from GitHub Actions" \
-            --parameters commands='[
-              "IMAGE=\"${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest\"",
-              "aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}",
-              "docker pull \"$IMAGE\"",
-              "docker stop rock-of-ages-api || true",
-              "docker rm rock-of-ages-api || true",
-              "docker run --pull always -d --name rock-of-ages-api -p 80:8000 -e DB_NAME=${{ secrets.DB_NAME }} -e DB_USER=${{ secrets.DB_USER }} -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} -e DB_HOST=${{ secrets.DB_HOST }} -e DB_PORT=${{ secrets.DB_PORT }} \"$IMAGE\""
-            ]' \
-            --region ${{ secrets.AWS_REGION }}
+          --targets "Key=tag:Role,Values=rock-of-ages-api" \
+          --document-name "AWS-RunShellScript" \
+          --comment "Deploy API via ALB" \
+          --parameters commands='[
+            "IMAGE=\"${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest\"",
+            "aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}",
+            "docker pull \"$IMAGE\"",
+            "docker stop rock-of-ages-api || true",
+            "docker rm rock-of-ages-api || true",
+            "docker run -d --name rock-of-ages-api -p 80:8000 --restart unless-stopped \
+              -e DB_NAME=${{ secrets.DB_NAME }} \
+              -e DB_USER=${{ secrets.DB_USER }} \
+              -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
+              -e DB_HOST=${{ secrets.DB_HOST }} \
+              -e DB_PORT=${{ secrets.DB_PORT }} \
+              \"$IMAGE\""
+          ]'
