@@ -2,9 +2,10 @@ from django.contrib import admin
 from django.urls import include, path
 from rest_framework import routers
 from rockapi.views import (
-    register_user, login_user, health_check,
+    register_user, login_user,
     TypeView, RockView
 )
+from rockapi.views.health_check import health_check
 
 
 router = routers.DefaultRouter(trailing_slash=False)
